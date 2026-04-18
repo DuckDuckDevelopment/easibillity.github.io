@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Easibillity — Hospital Financial Analytics Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,700;0,800;1,700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-primary:    #141714;
+    --bg-secondary:  #0d0f0e;
+    --bg-tertiary:   #0d0f0e;
+    --text-primary:  #e8ede9;
+    --text-secondary:#6b756c;
+    --text-tertiary: #4a524b;
+    --border:        #2a2f2b;
+    --border-med:    #3a3f3b;
+    --accent:        #b8f06a;
+    --accent-dim:    rgba(184,240,106,0.08);
+    --accent-border: rgba(184,240,106,0.25);
+    --teal:          #6af0c8;
+    --blue:          #6ac3f0;
+    --amber:         #f0c96a;
+    --red:           #f06a6a;
+    --purple:        #a06af0;
+    --pink:          #f06ab8;
+    --green-text:    #b8f06a;
+    --amber-text:    #f0c96a;
+    --red-text:      #f06a6a;
+    --radius-md:     8px;
+    --radius-lg:     14px;
+  }
+
+  ::selection { background: var(--accent); color: #000; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .shell { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+
+  /* ── Top bar ── */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.5rem; padding: 1rem 1.5rem;
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    flex-wrap: wrap; gap: 12px;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .logo {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 22px; font-weight: 800;
+    color: var(--accent); letter-spacing: -0.02em;
+  }
+  .badge {
+    font-family: monospace;
+    font-size: 10px; padding: 3px 10px; border-radius: 20px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid var(--accent-border);
+    text-transform: uppercase; letter-spacing: 0.15em;
+  }
+  .badge-csv {
+    background: rgba(106,195,240,0.08);
+    color: var(--blue);
+    border-color: rgba(106,195,240,0.25);
+  }
+  .hosp-name { font-size: 11px; color: var(--text-secondary); font-family: monospace; }
+
+  .topbar-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .view-tabs { display: flex; gap: 4px; }
+  .vtab {
+    font-size: 11px; padding: 6px 14px; border-radius: var(--radius-md);
+    border: 1px solid var(--border); background: transparent;
+    cursor: pointer; color: var(--text-secondary);
+    font-family: monospace; text-transform: uppercase; letter-spacing: 0.1em;
+    transition: all .15s;
+  }
+  .vtab:hover { background: var(--bg-secondary); border-color: var(--accent-border); color: var(--text-primary); }
+  .vtab.on {
+    background: var(--accent-dim); color: var(--accent);
+    border-color: var(--accent-border); font-weight: 600;
+  }
+
+  /* ── Data Input button ── */
+  .data-btn {
+    font-size: 11px; padding: 6px 14px; border-radius: var(--radius-md);
+    border: 1px solid var(--accent-border); background: var(--accent-dim);
+    cursor: pointer; color: var(--accent);
+    font-family: monospace; text-transform: uppercase; letter-spacing: 0.1em;
+    font-weight: 700; display: flex; align-items: center; gap: 6px;
+    transition: all .15s;
+  }
+  .data-btn:hover { background: rgba(184,240,106,0.15); }
+
+  /* ── Data Input Panel (modal-style) ── */
+  .input-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(13,15,14,0.88); backdrop-filter: blur(4px);
+    z-index: 100; align-items: flex-start; justify-content: center;
+    padding: 2rem 1rem; overflow-y: auto;
+  }
+  .input-overlay.open { display: flex; }
+
+  .input-panel {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-med);
+    border-radius: 18px;
+    width: 100%; max-width: 820px;
+    padding: 2rem;
+    position: relative;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+  .panel-close {
+    position: absolute; top: 1.2rem; right: 1.2rem;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    color: var(--text-secondary); border-radius: 6px;
+    width: 30px; height: 30px; cursor: pointer;
+    font-size: 16px; display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .panel-close:hover { border-color: var(--accent-border); color: var(--accent); }
+
+  .panel-title {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 22px; font-weight: 800; color: var(--text-primary);
+    margin-bottom: .3rem;
+  }
+  .panel-sub { font-family: monospace; font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .15em; margin-bottom: 1.5rem; }
+
+  /* Tab switcher inside panel */
+  .input-tabs { display: flex; gap: 4px; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+  .itab {
+    font-size: 11px; padding: 7px 16px;
+    border: 1px solid transparent; border-bottom: none;
+    background: transparent; cursor: pointer;
+    color: var(--text-secondary); font-family: monospace;
+    text-transform: uppercase; letter-spacing: .1em;
+    border-radius: 6px 6px 0 0;
+    transition: all .15s; margin-bottom: -1px;
+  }
+  .itab.on {
+    background: var(--bg-primary); color: var(--accent);
+    border-color: var(--border); border-bottom-color: var(--bg-primary);
+  }
+
+  .iview { display: none; }
+  .iview.on { display: block; }
+
+  /* ── Form fields inside panel ── */
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1rem; }
+  @media(max-width: 600px) { .field-grid { grid-template-columns: 1fr; } }
+  .field-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label {
+    font-family: monospace; font-size: 10px; color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: .12em;
+  }
+  .field input, .field select {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: var(--radius-md); padding: 9px 12px;
+    color: var(--text-primary); font-size: 13px;
+    outline: none; transition: border-color .15s;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent-border); }
+  .field input::placeholder { color: var(--text-tertiary); }
+
+  .section-label {
+    font-family: monospace;
+    font-size: 10px; font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: .15em;
+    margin: 1.4rem 0 .65rem;
+  }
+
+  /* Monthly trend table */
+  .trend-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+  .trend-table th {
+    font-family: monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--text-secondary); padding: 6px 8px; text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .trend-table td {
+    padding: 6px 8px;
+  }
+  .trend-table tr:nth-child(even) td { background: rgba(255,255,255,0.01); }
+  .trend-table input {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 8px;
+    color: var(--text-primary); font-size: 12px; font-family: monospace;
+    width: 100%; outline: none;
+    transition: border-color .15s;
+  }
+  .trend-table input:focus { border-color: var(--accent-border); }
+  .trend-table .month-lbl { font-family: monospace; font-size: 11px; color: var(--text-secondary); }
+
+  /* CSV upload zone */
+  .csv-zone {
+    border: 2px dashed var(--border-med);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+  .csv-zone:hover, .csv-zone.drag { border-color: var(--accent-border); background: var(--accent-dim); }
+  .csv-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .csv-icon { font-size: 32px; margin-bottom: 12px; }
+  .csv-title { font-family: 'EB Garamond', Georgia, serif; font-size: 18px; font-weight: 700; margin-bottom: 6px; color: var(--text-primary); }
+  .csv-sub { font-family: monospace; font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .12em; line-height: 1.8; }
+
+  .csv-preview {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: var(--radius-md); padding: 1rem;
+    margin-bottom: 1rem; font-family: monospace; font-size: 11px;
+    color: var(--teal); line-height: 1.7; max-height: 200px; overflow-y: auto;
+    display: none;
+  }
+  .csv-preview.show { display: block; }
+
+  .csv-format-box {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: var(--radius-md); padding: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .csv-format-title { font-family: monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--text-secondary); margin-bottom: 8px; }
+  .csv-format-code {
+    font-family: monospace; font-size: 11px; color: var(--accent);
+    line-height: 1.8; white-space: pre;
+  }
+
+  /* Apply button */
+  .apply-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent); color: #000;
+    font-family: monospace; font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .12em;
+    padding: 11px 28px; border-radius: var(--radius-md);
+    border: none; cursor: pointer;
+    transition: all .15s;
+    margin-top: 1rem;
+  }
+  .apply-btn:hover { background: #c8ff7a; transform: translateY(-1px); box-shadow: 0 6px 24px rgba(184,240,106,0.2); }
+
+  .reset-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent; color: var(--text-secondary);
+    font-family: monospace; font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .12em;
+    padding: 11px 20px; border-radius: var(--radius-md);
+    border: 1px solid var(--border); cursor: pointer;
+    transition: all .15s; margin-top: 1rem; margin-left: 8px;
+  }
+  .reset-btn:hover { border-color: var(--border-med); color: var(--text-primary); }
+
+  .btn-row { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+
+  /* ── Dashboard layout ── */
+  .g4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 1rem; }
+  .g3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 1rem; }
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 1rem; }
+  @media(max-width:700px){ .g4,.g3{ grid-template-columns:1fr 1fr; } .g2{ grid-template-columns:1fr; } .view-tabs{ flex-wrap:wrap; } }
+
+  .metric {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: .9rem 1rem;
+    transition: border-color .2s;
+  }
+  .metric:hover { border-color: var(--accent-border); }
+  .ml { font-family: monospace; font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+  .mv { font-size: 24px; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
+  .ms { font-family: monospace; font-size: 10px; margin-top: 5px; }
+  .up { color: var(--accent); }
+  .dn { color: var(--red-text); }
+  .neu { color: var(--text-secondary); }
+
+  .card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+    transition: border-color .2s;
+  }
+  .card:hover { border-color: var(--accent-border); }
+  .card-title {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 16px; font-weight: 700;
+    color: var(--text-primary); margin-bottom: .85rem;
+  }
+
+  .srow { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .slbl { font-family: monospace; font-size: 11px; color: var(--text-secondary); width: 210px; flex-shrink: 0; }
+  .sval { font-family: monospace; font-size: 11px; font-weight: 700; min-width: 78px; text-align: right; color: var(--accent); }
+  input[type=range] { flex: 1; accent-color: var(--accent); cursor: pointer; }
+
+  .delta-box { border-radius: var(--radius-md); padding: .9rem 1rem; margin-bottom: 1rem; border: 1px solid; }
+  .delta-pos { background: rgba(184,240,106,0.05); border-color: rgba(184,240,106,0.2); }
+  .delta-neg { background: rgba(240,201,106,0.05); border-color: rgba(240,201,106,0.2); }
+  .delta-title { font-family: 'EB Garamond', Georgia, serif; font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+  .delta-pos .delta-title { color: var(--accent); }
+  .delta-neg .delta-title { color: var(--amber-text); }
+  .delta-row { display: flex; justify-content: space-between; font-family: monospace; font-size: 11px; padding: 5px 0; border-bottom: 1px solid var(--border); }
+  .delta-row:last-child { border-bottom: none; }
+  .delta-lbl { color: var(--text-secondary); }
+  .delta-val-pos { color: var(--accent); font-weight: 700; }
+  .delta-val-neg { color: var(--amber-text); font-weight: 700; }
+
+  .insight-box {
+    background: rgba(106,195,240,0.05);
+    border: 1px solid rgba(106,195,240,0.2);
+    border-radius: var(--radius-md);
+    padding: .9rem 1rem; margin-bottom: 1rem;
+  }
+  .insight-text { font-size: 12px; color: var(--blue); line-height: 1.7; }
+
+  .prog-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .prog-lbl { font-family: monospace; font-size: 11px; color: var(--text-secondary); width: 150px; flex-shrink: 0; text-transform: uppercase; letter-spacing: .05em; }
+  .prog-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 3px; transition: width .4s; }
+  .prog-val { font-family: monospace; font-size: 11px; font-weight: 700; min-width: 36px; text-align: right; }
+
+  .panel { display: none; }
+  .panel.on { display: block; }
+
+  .peer-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .peer-row:last-child { border-bottom: none; }
+  .peer-name { color: var(--text-secondary); font-family: monospace; font-size: 11px; }
+  .peer-val { font-weight: 600; color: var(--text-primary); font-family: monospace; font-size: 11px; }
+  .peer-highlight { color: var(--accent); font-weight: 700; font-family: monospace; font-size: 11px; }
+
+  .grant-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: .9rem 1.1rem;
+    margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center; gap: 16px;
+    position: relative; overflow: hidden;
+    transition: border-color .2s;
+  }
+  .grant-card::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--accent); opacity: 0; transition: opacity .2s;
+    border-radius: 3px 0 0 3px;
+  }
+  .grant-card:hover { border-color: var(--accent-border); }
+  .grant-card:hover::before { opacity: 1; }
+  .grant-name { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+  .grant-sub { font-family: monospace; font-size: 10px; color: var(--text-secondary); margin-top: 4px; text-transform: uppercase; letter-spacing: .06em; }
+  .grant-amt { font-size: 16px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+  .grant-deadline { font-family: monospace; font-size: 10px; margin-top: 4px; text-align: right; }
+  .grant-alert { border-color: rgba(240,201,106,0.3); }
+  .grant-alert::before { background: var(--amber-text) !important; }
+  .grant-alert .grant-name { color: var(--amber-text); }
+  .grant-alert .grant-sub { color: rgba(240,201,106,0.6); }
+
+  .action-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: monospace; font-size: 11px; font-weight: 700;
+    padding: 9px 20px; border-radius: var(--radius-md);
+    border: 1px solid var(--border); background: transparent;
+    cursor: pointer; color: var(--text-primary);
+    text-transform: uppercase; letter-spacing: .1em;
+    margin-top: 8px; transition: all .15s;
+  }
+  .action-btn:hover { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+
+  /* Data source indicator */
+  .data-source-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: .55rem 1rem;
+    background: rgba(184,240,106,0.04);
+    border: 1px solid rgba(184,240,106,0.12);
+    border-radius: var(--radius-md);
+    margin-bottom: 1rem;
+    font-family: monospace; font-size: 10px; color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: .1em;
+    display: none;
+  }
+  .data-source-bar.show { display: flex; }
+  .data-source-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .data-source-text { color: var(--accent); }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 2rem; right: 2rem;
+    background: var(--bg-primary); border: 1px solid var(--accent-border);
+    border-radius: var(--radius-md); padding: .75rem 1.2rem;
+    font-family: monospace; font-size: 11px; color: var(--accent);
+    text-transform: uppercase; letter-spacing: .1em;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    transform: translateY(20px); opacity: 0;
+    transition: all .3s; pointer-events: none; z-index: 200;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* Error message */
+  .err-box {
+    background: rgba(240,106,106,0.07); border: 1px solid rgba(240,106,106,0.25);
+    border-radius: var(--radius-md); padding: .75rem 1rem;
+    font-family: monospace; font-size: 11px; color: var(--red-text);
+    margin-bottom: 1rem; display: none;
+  }
+  .err-box.show { display: block; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ── Top bar ── -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="logo">Easibillity</span>
+      <span class="badge" id="live-badge">Live</span>
+      <span class="badge badge-csv" id="csv-badge" style="display:none">CSV Loaded</span>
+    </div>
+    <div class="topbar-right">
+      <button class="data-btn" onclick="openInputPanel()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Load Data
+      </button>
+      <div class="view-tabs">
+        <button class="vtab on" onclick="setView('cfo',this)">CFO view</button>
+        <button class="vtab" onclick="setView('rural',this)">Rural admin</button>
+        <button class="vtab" onclick="setView('equity',this)">Equity</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Data source bar ── -->
+  <div class="data-source-bar" id="data-source-bar">
+    <div class="data-source-dot"></div>
+    <span class="data-source-text" id="data-source-text">Dashboard updated from loaded data</span>
+    <span style="margin-left:auto;cursor:pointer;color:var(--text-secondary)" onclick="resetToDefaults()">Reset to defaults ↩</span>
+  </div>
+
+  <!-- ══ CFO VIEW ══ -->
+  <div id="view-cfo" class="panel on">
+    <div class="section-label">Performance snapshot — last 90 days</div>
+    <div class="g4">
+      <div class="metric"><div class="ml">Patients screened</div><div class="mv" id="c-screened">1,847</div><div class="ms up" id="c-screened-sub">+12% vs prior period</div></div>
+      <div class="metric"><div class="ml">Bills fully resolved</div><div class="mv" id="c-resolved">1,104</div><div class="ms up" id="c-resolved-d">60% resolution rate</div></div>
+      <div class="metric"><div class="ml">Bad debt avoided</div><div class="mv up" id="c-baddebt">$2.31M</div><div class="ms up">vs prior period</div></div>
+      <div class="metric"><div class="ml">Net financial impact</div><div class="mv up" id="c-net">+$1.14M</div><div class="ms neu">charity cost vs collections saved</div></div>
+    </div>
+
+    <div class="g2">
+      <div>
+        <div class="section-label">Policy simulation — adjust thresholds</div>
+        <div class="card">
+          <div class="card-title">Charity care policy levers</div>
+          <div class="srow">
+            <span class="slbl">Full coverage FPL threshold</span>
+            <input type="range" min="100" max="400" step="10" value="200" id="fpl1" oninput="sim()">
+            <span class="sval" id="fpl1-out">200% FPL</span>
+          </div>
+          <div class="srow">
+            <span class="slbl">Sliding scale upper limit</span>
+            <input type="range" min="200" max="600" step="10" value="400" id="fpl2" oninput="sim()">
+            <span class="sval" id="fpl2-out">400% FPL</span>
+          </div>
+          <div class="srow">
+            <span class="slbl">Sliding scale reduction</span>
+            <input type="range" min="10" max="90" step="5" value="50" id="slidepct" oninput="sim()">
+            <span class="sval" id="slidepct-out">50%</span>
+          </div>
+          <div class="srow">
+            <span class="slbl">Payment plan income cap</span>
+            <input type="range" min="2" max="15" step="1" value="5" id="plancap" oninput="sim()">
+            <span class="sval" id="plancap-out">5% / mo</span>
+          </div>
+        </div>
+
+        <div id="delta-block" class="delta-box delta-pos">
+          <div class="delta-title" id="delta-title">Adjust sliders to model a policy change</div>
+          <div class="delta-row"><span class="delta-lbl">Additional patients fully resolved</span><span class="delta-val-pos" id="d-patients">+0</span></div>
+          <div class="delta-row"><span class="delta-lbl">Bad debt reduction</span><span class="delta-val-pos" id="d-baddebt">$0</span></div>
+          <div class="delta-row"><span class="delta-lbl">Additional charity care cost</span><span class="delta-val-neg" id="d-cost">$0</span></div>
+          <div class="delta-row"><span class="delta-lbl">Net financial impact</span><span class="delta-val-pos" id="d-net">$0</span></div>
+          <div class="delta-row"><span class="delta-lbl">Projected new resolution rate</span><span class="delta-val-pos" id="d-rate">60%</span></div>
+        </div>
+
+        <div class="insight-box">
+          <div class="insight-text" id="insight-text">Adjust the sliders above to model a policy change. The system calculates projected impact across your patient population in real time.</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-label">Resolution breakdown</div>
+        <div style="position:relative;height:220px;margin-bottom:.75rem">
+          <canvas id="chart1" role="img" aria-label="Donut chart showing patient bill resolution outcomes">Resolution outcomes.</canvas>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:1rem;font-family:monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary)">
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:#b8f06a;display:inline-block"></span>Fully resolved <strong id="leg1" style="color:var(--accent)">60%</strong></span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:#6ac3f0;display:inline-block"></span>Partially resolved <strong id="leg2" style="color:var(--blue)">22%</strong></span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:#f06a6a;display:inline-block"></span>Unresolved <strong id="leg3" style="color:var(--red-text)">18%</strong></span>
+        </div>
+
+        <div class="section-label">Assistance program utilization</div>
+        <div class="prog-row"><span class="prog-lbl">Full charity care</span><div class="prog-track"><div class="prog-fill" id="p1" style="width:60%;background:#b8f06a"></div></div><span class="prog-val up" id="pv1">60%</span></div>
+        <div class="prog-row"><span class="prog-lbl">Sliding scale</span><div class="prog-track"><div class="prog-fill" id="p2" style="width:22%;background:#6ac3f0"></div></div><span class="prog-val" style="color:var(--blue)" id="pv2">22%</span></div>
+        <div class="prog-row"><span class="prog-lbl">Medicaid enrolled</span><div class="prog-track"><div class="prog-fill" id="p3" style="width:31%;background:#a06af0"></div></div><span class="prog-val" style="color:var(--purple)" id="pv3">31%</span></div>
+        <div class="prog-row"><span class="prog-lbl">Payment plans</span><div class="prog-track"><div class="prog-fill" id="p4" style="width:14%;background:#f0c96a"></div></div><span class="prog-val" style="color:var(--amber)" id="pv4">14%</span></div>
+        <div class="prog-row"><span class="prog-lbl">Pharmaceutical assist</span><div class="prog-track"><div class="prog-fill" id="p5" style="width:19%;background:#f06ab8"></div></div><span class="prog-val" style="color:var(--pink)" id="pv5">19%</span></div>
+      </div>
+    </div>
+
+    <div class="section-label">12-month bad debt trend</div>
+    <div style="position:relative;height:200px;margin-bottom:1.5rem">
+      <canvas id="chart2" role="img" aria-label="Line chart showing monthly bad debt trend">Monthly bad debt trend.</canvas>
+    </div>
+
+    <div class="section-label">Peer hospital comparison</div>
+    <div class="card">
+      <div class="peer-row"><span class="peer-name">CAH national average</span><span class="peer-val">41% resolution rate</span></div>
+      <div class="peer-row"><span class="peer-name">Texas CAH average</span><span class="peer-val">38% resolution rate</span></div>
+      <div class="peer-row"><span class="peer-name">Top quartile CAH</span><span class="peer-val">67% resolution rate</span></div>
+      <div class="peer-row"><span class="peer-name" style="color:var(--text-primary);font-weight:700">Your hospital (current)</span><span class="peer-highlight" id="peer-you">60% resolution rate</span></div>
+      <div class="peer-row"><span class="peer-name" style="color:var(--text-primary);font-weight:700">Your hospital (proposed policy)</span><span class="peer-highlight" id="peer-proposed">60% resolution rate</span></div>
+    </div>
+  </div>
+
+  <!-- ══ RURAL ADMIN VIEW ══ -->
+  <div id="view-rural" class="panel">
+    <div class="section-label">Rural operations snapshot</div>
+    <div class="g3">
+      <div class="metric"><div class="ml">Avg screening time</div><div class="mv" id="r-screen-time">38 sec</div><div class="ms up">vs 47 min manual process</div></div>
+      <div class="metric"><div class="ml">Staff using system</div><div class="mv" id="r-staff">7 / 7</div><div class="ms up" id="r-staff-sub">100% adoption rate</div></div>
+      <div class="metric"><div class="ml">Patients turned away</div><div class="mv up" id="r-turned-away">0</div><div class="ms up" id="r-turned-sub">down from 23 last quarter</div></div>
+    </div>
+    <div class="g3">
+      <div class="metric"><div class="ml">Uncompensated care rate</div><div class="mv" id="r-uncomp">6.2%</div><div class="ms up">vs 11.4% last year</div></div>
+      <div class="metric"><div class="ml">Charity care cost</div><div class="mv" id="r-charitycost">$1.17M</div><div class="ms neu">within annual budget</div></div>
+      <div class="metric"><div class="ml">Collections avoided</div><div class="mv up" id="r-collections">$2.31M</div><div class="ms up">this fiscal year</div></div>
+    </div>
+
+    <div class="section-label">Grant funding status</div>
+    <div class="grant-card">
+      <div><div class="grant-name">HRSA Rural Health Outreach Grant</div><div class="grant-sub">Applied via Easibillity · Awarded · Renews annually</div></div>
+      <div style="text-align:right"><div class="grant-amt">$285,000</div><div class="grant-deadline neu">Renewal due Jun 30</div></div>
+    </div>
+    <div class="grant-card">
+      <div><div class="grant-name">Medicare Rural Flex Program (FLEX)</div><div class="grant-sub">CAH quality improvement funding · Active</div></div>
+      <div style="text-align:right"><div class="grant-amt">$112,000</div><div class="grant-deadline up">Active — no action needed</div></div>
+    </div>
+    <div class="grant-card grant-alert">
+      <div><div class="grant-name">USDA Community Facilities Grant</div><div class="grant-sub">Not yet applied — Easibillity has pre-filled 94% of application</div></div>
+      <div style="text-align:right"><div class="grant-amt" style="color:var(--amber-text)">$340,000</div><div class="grant-deadline dn">Deadline: Aug 15, 2026</div></div>
+    </div>
+    <div class="grant-card grant-alert">
+      <div><div class="grant-name">340B Drug Pricing Program</div><div class="grant-sub">Eligible but not enrolled — saves avg 25–50% on all Rx purchases</div></div>
+      <div style="text-align:right"><div class="grant-amt" style="color:var(--amber-text)">~$190K / yr</div><div class="grant-deadline dn">Enroll anytime — high priority</div></div>
+    </div>
+
+    <div class="section-label">Staff intake performance — last 30 days</div>
+    <div class="card">
+      <div class="peer-row"><span class="peer-name">Total intakes completed</span><span class="peer-val" id="r-intakes">312</span></div>
+      <div class="peer-row"><span class="peer-name">Average time per intake</span><span class="peer-val" id="r-avg-time">38 seconds</span></div>
+      <div class="peer-row"><span class="peer-name">Preliminary determinations confirmed at verification</span><span class="peer-highlight" id="r-confirm-rate">97.4%</span></div>
+      <div class="peer-row"><span class="peer-name">Determinations revised after document review</span><span class="peer-val" id="r-revised">2.6%</span></div>
+      <div class="peer-row"><span class="peer-name">Fraud flags triggered</span><span class="peer-val" id="r-fraud">3</span></div>
+      <div class="peer-row"><span class="peer-name">Audit log entries</span><span class="peer-highlight" id="r-audit">312 — 100% complete</span></div>
+    </div>
+  </div>
+
+  <!-- ══ EQUITY VIEW ══ -->
+  <div id="view-equity" class="panel">
+    <div class="section-label">Access equity metrics</div>
+    <div class="g4">
+      <div class="metric"><div class="ml">Patients below 200% FPL served</div><div class="mv up" id="e-low-fpl">847</div><div class="ms up">+31% vs last year</div></div>
+      <div class="metric"><div class="ml">Uninsured patients resolved</div><div class="mv up" id="e-uninsured">73%</div><div class="ms up">up from 41%</div></div>
+      <div class="metric"><div class="ml">Delayed care incidents</div><div class="mv up" id="e-delayed">12</div><div class="ms up">down from 89</div></div>
+      <div class="metric"><div class="ml">Avg bill — low income patient</div><div class="mv up" id="e-avg-bill">$0</div><div class="ms up">down from $4,200</div></div>
+    </div>
+
+    <div class="section-label">Resolution rate by income bracket — current vs proposed policy</div>
+    <div style="position:relative;height:260px;margin-bottom:.75rem">
+      <canvas id="chart3" role="img" aria-label="Grouped bar chart showing resolution rates by income bracket">Resolution rates by income bracket.</canvas>
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:1.5rem;font-family:monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary)">
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:#b8f06a;display:inline-block"></span>Current policy</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(184,240,106,0.25);border:1px dashed #b8f06a;display:inline-block"></span>Proposed policy</span>
+    </div>
+
+    <div class="section-label">Condition access gaps — patients who delayed or skipped care</div>
+    <div class="card">
+      <div class="peer-row"><span class="peer-name">Chronic disease management</span><span class="peer-val dn" id="e-chronic">23 patients delayed this quarter</span></div>
+      <div class="peer-row"><span class="peer-name">Mental health</span><span class="peer-val dn" id="e-mental">31 patients delayed this quarter</span></div>
+      <div class="peer-row"><span class="peer-name">Maternal / prenatal</span><span class="peer-highlight">0 delayed — fully covered</span></div>
+      <div class="peer-row"><span class="peer-name">Preventive screenings</span><span class="peer-val dn" id="e-preventive">14 delayed this quarter</span></div>
+      <div class="peer-row"><span class="peer-name">Prescription access gaps</span><span class="peer-val dn" id="e-rx">47 gaps identified</span></div>
+    </div>
+
+    <div class="section-label">Projected equity impact — proposed policy change</div>
+    <div style="position:relative;height:200px;margin-bottom:1rem">
+      <canvas id="chart4" role="img" aria-label="Horizontal bar chart showing projected patients newly covered per condition">Patients newly covered per condition.</canvas>
+    </div>
+  </div>
+
+</div><!-- /shell -->
+
+<!-- ══ Data Input Overlay ══ -->
+<div class="input-overlay" id="input-overlay">
+  <div class="input-panel">
+    <button class="panel-close" onclick="closeInputPanel()">✕</button>
+    <div class="panel-title">Load Hospital Data</div>
+    <div class="panel-sub">Upload a CSV or enter metrics manually · All fields optional</div>
+
+    <div class="input-tabs">
+      <button class="itab on" onclick="switchInputTab('manual',this)">Manual Entry</button>
+      <button class="itab" onclick="switchInputTab('csv',this)">CSV Upload</button>
+    </div>
+
+    <!-- ── Manual Tab ── -->
+    <div class="iview on" id="iview-manual">
+      <div class="section-label" style="margin-top:0">Hospital identity</div>
+      <div class="field-grid">
+        <div class="field">
+          <label>Hospital Name</label>
+          <input type="text" id="m-hosp-name" placeholder="e.g. Hillcrest Critical Access Hospital" />
+        </div>
+        <div class="field">
+          <label>Location</label>
+          <input type="text" id="m-location" placeholder="e.g. Laredo, TX" />
+        </div>
+        <div class="field">
+          <label>Licensed Beds</label>
+          <input type="number" id="m-beds" placeholder="e.g. 18" />
+        </div>
+        <div class="field">
+          <label>Certification</label>
+          <input type="text" id="m-cert" placeholder="e.g. CAH certified" />
+        </div>
+      </div>
+
+      <div class="section-label">90-day performance snapshot</div>
+      <div class="field-grid field-grid-3">
+        <div class="field">
+          <label>Patients Screened</label>
+          <input type="number" id="m-screened" placeholder="e.g. 1847" />
+        </div>
+        <div class="field">
+          <label>Bills Fully Resolved</label>
+          <input type="number" id="m-resolved" placeholder="e.g. 1104" />
+        </div>
+        <div class="field">
+          <label>Bad Debt Avoided ($)</label>
+          <input type="number" id="m-baddebt" placeholder="e.g. 2310000" />
+        </div>
+        <div class="field">
+          <label>Charity Care Cost ($)</label>
+          <input type="number" id="m-charitycost" placeholder="e.g. 1170000" />
+        </div>
+        <div class="field">
+          <label>Patients Below 200% FPL</label>
+          <input type="number" id="m-low-fpl" placeholder="e.g. 847" />
+        </div>
+        <div class="field">
+          <label>Uninsured Resolved (%)</label>
+          <input type="number" id="m-uninsured" placeholder="e.g. 73" />
+        </div>
+      </div>
+
+      <div class="section-label">Program utilization (%)</div>
+      <div class="field-grid field-grid-3">
+        <div class="field">
+          <label>Full Charity Care %</label>
+          <input type="number" id="m-p1" placeholder="e.g. 60" min="0" max="100" />
+        </div>
+        <div class="field">
+          <label>Sliding Scale %</label>
+          <input type="number" id="m-p2" placeholder="e.g. 22" min="0" max="100" />
+        </div>
+        <div class="field">
+          <label>Medicaid Enrolled %</label>
+          <input type="number" id="m-p3" placeholder="e.g. 31" min="0" max="100" />
+        </div>
+        <div class="field">
+          <label>Payment Plans %</label>
+          <input type="number" id="m-p4" placeholder="e.g. 14" min="0" max="100" />
+        </div>
+        <div class="field">
+          <label>Pharma Assist %</label>
+          <input type="number" id="m-p5" placeholder="e.g. 19" min="0" max="100" />
+        </div>
+        <div class="field">
+          <label>Delayed Care Incidents</label>
+          <input type="number" id="m-delayed" placeholder="e.g. 12" />
+        </div>
+      </div>
+
+      <div class="section-label">12-month bad debt trend (monthly $)</div>
+      <table class="trend-table">
+        <thead>
+          <tr>
+            <th>Month</th><th>Bad Debt ($)</th>
+            <th>Month</th><th>Bad Debt ($)</th>
+            <th>Month</th><th>Bad Debt ($)</th>
+          </tr>
+        </thead>
+        <tbody id="trend-rows"></tbody>
+      </table>
+
+      <div class="btn-row">
+        <button class="apply-btn" onclick="applyManual()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Apply to Dashboard
+        </button>
+        <button class="reset-btn" onclick="resetToDefaults()">Reset Defaults</button>
+      </div>
+    </div>
+
+    <!-- ── CSV Tab ── -->
+    <div class="iview" id="iview-csv">
+      <div class="csv-format-box">
+        <div class="csv-format-title">Expected CSV format — one row per field</div>
+        <div class="csv-format-code">field,value
+hospital_name,Hillcrest Critical Access Hospital
+location,Laredo TX
+beds,18
+certification,CAH certified
+screened,1847
+resolved,1104
+bad_debt,2310000
+charity_cost,1170000
+low_fpl_patients,847
+uninsured_resolved_pct,73
+delayed_care,12
+full_charity_pct,60
+sliding_scale_pct,22
+medicaid_pct,31
+payment_plan_pct,14
+pharma_assist_pct,19
+trend_may,420000
+trend_jun,398000
+trend_jul,371000
+trend_aug,340000
+trend_sep,312000
+trend_oct,289000
+trend_nov,265000
+trend_dec,242000
+trend_jan,224000
+trend_feb,210000
+trend_mar,195000
+trend_apr,185000</div>
+      </div>
+
+      <div class="csv-zone" id="csv-zone"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="handleDrop(event)">
+        <input type="file" accept=".csv,text/csv" onchange="handleFileSelect(event)" />
+        <div class="csv-icon">📄</div>
+        <div class="csv-title">Drop your CSV here</div>
+        <div class="csv-sub">or click to browse files<br>.csv · UTF-8 encoding</div>
+      </div>
+
+      <div class="err-box" id="csv-err"></div>
+      <div class="csv-preview" id="csv-preview"></div>
+
+      <div class="btn-row">
+        <button class="apply-btn" id="csv-apply-btn" onclick="applyCSV()" style="opacity:.4;pointer-events:none">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Apply to Dashboard
+        </button>
+        <button class="reset-btn" onclick="resetToDefaults()">Reset Defaults</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+const DEFAULTS = {
+  screened: 1847, resolved: 1104, baddebt: 2310000, charityCost: 1170000,
+  fullCharity: 60, sliding: 22, medicaid: 31, payPlan: 14, pharma: 19,
+  lowFpl: 847, uninsured: 73, delayed: 12,
+  trend: [420,398,371,340,312,289,265,242,224,210,195,185],
+  trendLabels: ['May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr'],
+  hospName: 'Hillcrest Critical Access Hospital', location: 'Laredo, TX',
+  beds: 18, cert: 'CAH certified'
+};
+
+let STATE = JSON.parse(JSON.stringify(DEFAULTS));
+let donut, trend, equity, impact;
+let csvParsed = null;
+
+const MONTHS = ['May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr'];
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function fmtM(n) {
+  if (Math.abs(n) >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+  if (Math.abs(n) >= 1e3) return '$' + Math.round(n/1e3) + 'K';
+  return '$' + Math.round(n);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ─── Panel nav ────────────────────────────────────────────────────────────────
+function setView(v, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.vtab').forEach(t => t.classList.remove('on'));
+  document.getElementById('view-' + v).classList.add('on');
+  el.classList.add('on');
+}
+
+function openInputPanel() { document.getElementById('input-overlay').classList.add('open'); buildTrendTable(); }
+function closeInputPanel() { document.getElementById('input-overlay').classList.remove('open'); }
+
+function switchInputTab(id, el) {
+  document.querySelectorAll('.iview').forEach(v => v.classList.remove('on'));
+  document.querySelectorAll('.itab').forEach(t => t.classList.remove('on'));
+  document.getElementById('iview-' + id).classList.add('on');
+  el.classList.add('on');
+}
+
+// ─── Build trend input table ─────────────────────────────────────────────────
+function buildTrendTable() {
+  const tbody = document.getElementById('trend-rows');
+  if (tbody.children.length > 0) return; // already built
+  let html = '';
+  for (let i = 0; i < 12; i += 3) {
+    html += '<tr>';
+    for (let j = i; j < i+3 && j < 12; j++) {
+      html += `<td class="month-lbl">${MONTHS[j]}</td>
+               <td><input type="number" id="tr-${j}" placeholder="${STATE.trend[j]*1000}" value="${STATE.trend[j]*1000}" /></td>`;
+    }
+    html += '</tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+function rebuildTrendTable() {
+  document.getElementById('trend-rows').innerHTML = '';
+  buildTrendTable();
+}
+
+// ─── Apply manual inputs ─────────────────────────────────────────────────────
+function applyManual() {
+  const g = id => document.getElementById(id).value;
+
+  // Hospital identity
+  if (g('m-hosp-name')) STATE.hospName = g('m-hosp-name');
+  if (g('m-location'))  STATE.location = g('m-location');
+  if (g('m-beds'))      STATE.beds     = parseInt(g('m-beds'));
+  if (g('m-cert'))      STATE.cert     = g('m-cert');
+
+  // Metrics
+  if (g('m-screened'))  STATE.screened    = parseInt(g('m-screened'));
+  if (g('m-resolved'))  STATE.resolved    = parseInt(g('m-resolved'));
+  if (g('m-baddebt'))   STATE.baddebt     = parseFloat(g('m-baddebt'));
+  if (g('m-charitycost')) STATE.charityCost = parseFloat(g('m-charitycost'));
+  if (g('m-low-fpl'))   STATE.lowFpl      = parseInt(g('m-low-fpl'));
+  if (g('m-uninsured')) STATE.uninsured   = parseFloat(g('m-uninsured'));
+  if (g('m-delayed'))   STATE.delayed     = parseInt(g('m-delayed'));
+
+  if (g('m-p1')) STATE.fullCharity = parseFloat(g('m-p1'));
+  if (g('m-p2')) STATE.sliding     = parseFloat(g('m-p2'));
+  if (g('m-p3')) STATE.medicaid    = parseFloat(g('m-p3'));
+  if (g('m-p4')) STATE.payPlan     = parseFloat(g('m-p4'));
+  if (g('m-p5')) STATE.pharma      = parseFloat(g('m-p5'));
+
+  // Trend
+  for (let i = 0; i < 12; i++) {
+    const v = document.getElementById('tr-' + i);
+    if (v && v.value) STATE.trend[i] = parseFloat(v.value) / 1000;
+  }
+
+  renderDashboard('manual');
+  closeInputPanel();
+}
+
+// ─── CSV parsing ─────────────────────────────────────────────────────────────
+function handleFileSelect(e) {
+  const f = e.target.files[0];
+  if (f) readCSV(f);
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('csv-zone').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) readCSV(f);
+}
+
+function readCSV(file) {
+  const reader = new FileReader();
+  reader.onload = ev => parseCSV(ev.target.result);
+  reader.readAsText(file);
+}
+
+function parseCSV(text) {
+  const errEl = document.getElementById('csv-err');
+  const prev  = document.getElementById('csv-preview');
+  errEl.classList.remove('show');
+  prev.classList.remove('show');
+
+  const rows = text.trim().split(/\r?\n/).filter(r => r.trim());
+  const map = {};
+
+  for (const row of rows) {
+    const [key, ...rest] = row.split(',');
+    if (!key || key.trim().toLowerCase() === 'field') continue;
+    map[key.trim().toLowerCase()] = rest.join(',').trim();
+  }
+
+  if (Object.keys(map).length === 0) {
+    errEl.textContent = 'Could not parse CSV — check that your file uses the expected format (field,value).';
+    errEl.classList.add('show');
+    return;
+  }
+
+  csvParsed = map;
+
+  // Show preview
+  const lines = Object.entries(map).slice(0, 12).map(([k,v]) => `${k}: ${v}`).join('\n');
+  prev.textContent = `✓ Parsed ${Object.keys(map).length} fields:\n\n${lines}${Object.keys(map).length > 12 ? '\n…' : ''}`;
+  prev.classList.add('show');
+
+  const btn = document.getElementById('csv-apply-btn');
+  btn.style.opacity = '1';
+  btn.style.pointerEvents = 'auto';
+}
+
+function applyCSV() {
+  if (!csvParsed) return;
+  const m = csvParsed;
+  const n = (key, fallback) => m[key] ? parseFloat(m[key]) : fallback;
+  const s = (key, fallback) => m[key] || fallback;
+
+  STATE.hospName    = s('hospital_name', STATE.hospName);
+  STATE.location    = s('location', STATE.location);
+  STATE.beds        = n('beds', STATE.beds);
+  STATE.cert        = s('certification', STATE.cert);
+  STATE.screened    = n('screened', STATE.screened);
+  STATE.resolved    = n('resolved', STATE.resolved);
+  STATE.baddebt     = n('bad_debt', STATE.baddebt);
+  STATE.charityCost = n('charity_cost', STATE.charityCost);
+  STATE.lowFpl      = n('low_fpl_patients', STATE.lowFpl);
+  STATE.uninsured   = n('uninsured_resolved_pct', STATE.uninsured);
+  STATE.delayed     = n('delayed_care', STATE.delayed);
+  STATE.fullCharity = n('full_charity_pct', STATE.fullCharity);
+  STATE.sliding     = n('sliding_scale_pct', STATE.sliding);
+  STATE.medicaid    = n('medicaid_pct', STATE.medicaid);
+  STATE.payPlan     = n('payment_plan_pct', STATE.payPlan);
+  STATE.pharma      = n('pharma_assist_pct', STATE.pharma);
+
+  const trendKeys = ['may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar','apr'];
+  trendKeys.forEach((k, i) => {
+    if (m['trend_' + k]) STATE.trend[i] = parseFloat(m['trend_' + k]) / 1000;
+  });
+
+  renderDashboard('csv');
+  rebuildTrendTable();
+  closeInputPanel();
+}
+
+// ─── Render dashboard from STATE ─────────────────────────────────────────────
+function renderDashboard(source) {
+  const resRate = Math.round(STATE.resolved / STATE.screened * 100);
+  const net = STATE.baddebt - STATE.charityCost;
+
+  // Header
+  document.getElementById('hosp-name-display').textContent =
+    `${STATE.hospName} — ${STATE.location} · ${STATE.beds} beds · ${STATE.cert}`;
+
+  // Badges
+  document.getElementById('live-badge').style.display = source === 'csv' ? 'none' : '';
+  document.getElementById('csv-badge').style.display = source === 'csv' ? '' : 'none';
+
+  // Data source bar
+  const bar = document.getElementById('data-source-bar');
+  bar.classList.add('show');
+  document.getElementById('data-source-text').textContent =
+    source === 'csv'
+      ? `Dashboard updated from CSV · ${Object.keys(csvParsed||{}).length} fields loaded`
+      : `Dashboard updated from manual entry`;
+
+  // CFO metrics
+  document.getElementById('c-screened').textContent = STATE.screened.toLocaleString();
+  document.getElementById('c-resolved').textContent = STATE.resolved.toLocaleString();
+  document.getElementById('c-resolved-d').textContent = resRate + '% resolution rate';
+  document.getElementById('c-baddebt').textContent = fmtM(STATE.baddebt);
+  document.getElementById('c-net').textContent = (net >= 0 ? '+' : '') + fmtM(net);
+  document.getElementById('peer-you').textContent = resRate + '% resolution rate';
+
+  // Rural
+  document.getElementById('r-charitycost').textContent = fmtM(STATE.charityCost);
+  document.getElementById('r-collections').textContent = fmtM(STATE.baddebt);
+
+  // Equity
+  document.getElementById('e-low-fpl').textContent = STATE.lowFpl.toLocaleString();
+  document.getElementById('e-uninsured').textContent = STATE.uninsured + '%';
+  document.getElementById('e-delayed').textContent = STATE.delayed;
+
+  // Progress bars
+  const progs = [
+    ['p1','pv1', STATE.fullCharity, '#b8f06a'],
+    ['p2','pv2', STATE.sliding,     '#6ac3f0'],
+    ['p3','pv3', STATE.medicaid,    '#a06af0'],
+    ['p4','pv4', STATE.payPlan,     '#f0c96a'],
+    ['p5','pv5', STATE.pharma,      '#f06ab8'],
+  ];
+  progs.forEach(([pid, pvid, val]) => {
+    document.getElementById(pid).style.width = Math.min(val,100) + '%';
+    document.getElementById(pvid).textContent = val + '%';
+  });
+
+  // Donut
+  const fp = resRate;
+  const pp = STATE.sliding;
+  const up = Math.max(0, 100 - fp - pp);
+  if (donut) {
+    donut.data.datasets[0].data = [fp, pp, up];
+    donut.update();
+  }
+  document.getElementById('leg1').textContent = fp + '%';
+  document.getElementById('leg2').textContent = pp + '%';
+  document.getElementById('leg3').textContent = up + '%';
+  document.getElementById('p1').style.width = fp + '%';
+  document.getElementById('pv1').textContent = fp + '%';
+
+  // Trend chart
+  if (trend) {
+    trend.data.datasets[0].data = [...STATE.trend];
+    trend.update();
+  }
+
+  // Reset sliders
+  document.getElementById('fpl1').value = 200;
+  document.getElementById('fpl2').value = 400;
+  document.getElementById('slidepct').value = 50;
+  document.getElementById('plancap').value = 5;
+  sim();
+
+  showToast('Dashboard updated ✓');
+}
+
+// ─── Reset to defaults ────────────────────────────────────────────────────────
+function resetToDefaults() {
+  STATE = JSON.parse(JSON.stringify(DEFAULTS));
+  csvParsed = null;
+  document.getElementById('csv-badge').style.display = 'none';
+  document.getElementById('live-badge').style.display = '';
+  document.getElementById('data-source-bar').classList.remove('show');
+  document.getElementById('hosp-name-display').textContent =
+    'Hillcrest Critical Access Hospital — Laredo, TX · 18 beds · CAH certified';
+  renderDashboard('reset');
+  closeInputPanel();
+  document.getElementById('csv-preview').classList.remove('show');
+  document.getElementById('csv-err').classList.remove('show');
+  const applyBtn = document.getElementById('csv-apply-btn');
+  applyBtn.style.opacity = '0.4';
+  applyBtn.style.pointerEvents = 'none';
+  rebuildTrendTable();
+  document.getElementById('data-source-bar').classList.remove('show');
+}
+
+// ─── Policy simulation ────────────────────────────────────────────────────────
+function sim() {
+  const fpl1     = +document.getElementById('fpl1').value;
+  const fpl2     = +document.getElementById('fpl2').value;
+  const slidepct = +document.getElementById('slidepct').value;
+  const plancap  = +document.getElementById('plancap').value;
+  document.getElementById('fpl1-out').textContent    = fpl1 + '% FPL';
+  document.getElementById('fpl2-out').textContent    = fpl2 + '% FPL';
+  document.getElementById('slidepct-out').textContent = slidepct + '%';
+  document.getElementById('plancap-out').textContent  = plancap + '% / mo';
+
+  const bonus   = ((fpl1-200)/100)*0.15 + ((fpl2-400)/200)*0.06 + ((slidepct-50)/100)*0.05 + ((5-plancap)/10)*0.03;
+  const addPts  = Math.max(0, Math.round(STATE.screened * bonus));
+  const newRes  = STATE.resolved + addPts;
+  const newRate = Math.round(newRes / STATE.screened * 100);
+  const bdSaved = Math.round(addPts * (STATE.baddebt / STATE.resolved));
+  const ccAdd   = Math.round(addPts * (STATE.charityCost / STATE.resolved));
+  const net     = bdSaved - ccAdd;
+  const pos     = net >= 0;
+
+  document.getElementById('d-patients').textContent = (addPts > 0 ? '+' : '') + addPts;
+  document.getElementById('d-baddebt').textContent  = fmtM(bdSaved);
+  document.getElementById('d-cost').textContent     = '-' + fmtM(ccAdd);
+  document.getElementById('d-net').textContent      = (pos ? '+' : '') + fmtM(net);
+  document.getElementById('d-rate').textContent     = newRate + '%';
+  document.getElementById('peer-proposed').textContent = newRate + '% resolution rate';
+
+  const db = document.getElementById('delta-block');
+  const dt = document.getElementById('delta-title');
+  db.className  = 'delta-box ' + (pos ? 'delta-pos' : 'delta-neg');
+  dt.textContent = pos ? 'Proposed policy improves access and finances' : 'Proposed policy improves access — review cost';
+  dt.style.color = pos ? '#b8f06a' : '#f0c96a';
+  document.getElementById('d-net').className = pos ? 'delta-val-pos' : 'delta-val-neg';
+
+  const insight = document.getElementById('insight-text');
+  if (addPts === 0) {
+    insight.textContent = 'Current policy is your baseline. Increase the full coverage FPL threshold to model improvements.';
+  } else if (pos) {
+    insight.textContent = `Expanding charity care to ${fpl1}% FPL resolves ${addPts} additional patients and generates a net benefit of ${fmtM(net)}. Collections savings exceed added charity care cost — this policy change pays for itself.`;
+  } else {
+    insight.textContent = `This expansion resolves ${addPts} more patients but costs ${fmtM(Math.abs(net))} net. Consider phasing the threshold increase over two fiscal years to manage cash flow while improving access.`;
+  }
+
+  const fp2 = Math.round(newRes / STATE.screened * 100);
+  const pp2 = Math.max(5, STATE.sliding - Math.round(bonus * 10));
+  const up2 = Math.max(3, 100 - fp2 - pp2);
+  document.getElementById('leg1').textContent = fp2 + '%';
+  document.getElementById('leg2').textContent = pp2 + '%';
+  document.getElementById('leg3').textContent = up2 + '%';
+  if (donut) { donut.data.datasets[0].data = [fp2, pp2, up2]; donut.update(); }
+  document.getElementById('p1').style.width = fp2 + '%';
+  document.getElementById('pv1').textContent = fp2 + '%';
+
+  if (equity) {
+    const b = Math.round(bonus * 30);
+    equity.data.datasets[1].data = [
+      Math.min(100,98+b), Math.min(100,88+b), Math.min(100,72+b),
+      Math.min(100,45+b), Math.min(100,22+b)
+    ];
+    equity.update();
+  }
+  if (impact) {
+    const sc = 1 + bonus * 2;
+    impact.data.datasets[0].data = [
+      Math.round(31*sc), Math.round(23*sc), Math.round(14*sc),
+      Math.round(47*sc), Math.round(8*sc)
+    ];
+    impact.update();
+  }
+}
+
+// ─── Charts init ──────────────────────────────────────────────────────────────
+window.addEventListener('load', function () {
+  Chart.defaults.color = '#6b756c';
+  Chart.defaults.borderColor = '#2a2f2b';
+  const gridColor = '#2a2f2b';
+  const tickFont  = { size: 11, family: 'monospace' };
+
+  donut = new Chart(document.getElementById('chart1'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Fully resolved','Partially resolved','Unresolved'],
+      datasets: [{ data: [60,22,18], backgroundColor: ['#b8f06a','#6ac3f0','#f06a6a'], borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false } } }
+  });
+
+  trend = new Chart(document.getElementById('chart2'), {
+    type: 'line',
+    data: {
+      labels: MONTHS,
+      datasets: [{
+        label: 'Bad debt ($K)',
+        data: [...STATE.trend],
+        borderColor: '#b8f06a', borderWidth: 2,
+        pointBackgroundColor: '#b8f06a', pointRadius: 3,
+        fill: true, backgroundColor: 'rgba(184,240,106,0.05)', tension: .3
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { ticks: { callback: v => '$'+v+'K', font: tickFont }, grid: { color: gridColor } },
+        x: { ticks: { font: tickFont }, grid: { display: false } }
+      }
+    }
+  });
+
+  equity = new Chart(document.getElementById('chart3'), {
+    type: 'bar',
+    data: {
+      labels: ['<100% FPL','100–200%','200–300%','300–400%','>400% FPL'],
+      datasets: [
+        { label: 'Current policy',  data: [98,88,72,45,22], backgroundColor: '#b8f06a', borderWidth: 0, borderRadius: 3 },
+        { label: 'Proposed policy', data: [98,88,72,45,22], backgroundColor: 'rgba(184,240,106,0.2)', borderWidth: 1, borderColor: '#b8f06a', borderRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { min: 0, max: 100, ticks: { callback: v => v+'%', font: tickFont }, grid: { color: gridColor } },
+        x: { ticks: { font: tickFont }, grid: { display: false } }
+      }
+    }
+  });
+
+  impact = new Chart(document.getElementById('chart4'), {
+    type: 'bar',
+    data: {
+      labels: ['Mental health','Chronic disease','Preventive','Prescription','Other'],
+      datasets: [{
+        label: 'Patients newly covered',
+        data: [31,23,14,47,8],
+        backgroundColor: ['#a06af0','#b8f06a','#6ac3f0','#f06ab8','#f0c96a'],
+        borderWidth: 0, borderRadius: 3
+      }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: tickFont }, grid: { color: gridColor } },
+        y: { ticks: { font: tickFont }, grid: { display: false } }
+      }
+    }
+  });
+
+  // Close overlay on backdrop click
+  document.getElementById('input-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeInputPanel();
+  });
+});
+</script>
+</body>
+</html>
