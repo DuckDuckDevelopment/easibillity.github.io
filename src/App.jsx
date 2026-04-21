@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+
 const DISEASE_CODES = {
   "HD": "Heart Disease and Stroke", "CA": "Cancer", "DB": "Diabetes", "OB": "Obesity",
   "AD": "Alzheimer's Disease and Other Dementias", "AR": "Arthritis", "CK": "Chronic Kidney Disease",
@@ -46,7 +48,7 @@ const FormPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("http://127.0.0.1:5000/api/hunt", {
+      const response = await fetch(`${API_URL}/api/hunt`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -46,7 +46,10 @@ app = FastAPI()
 # In production, restrict allow_origins to specific domains instead of "*"
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins (dev/testing only)
+    allow_origins=[
+        "https://aarah-s.github.io",
+        "http://localhost:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -140,8 +143,7 @@ async def api_hunt(req: HuntRequest):
 if __name__ == "__main__":
     # Start FastAPI server with auto-reload enabled (for development)
     # In production, set reload=False and use a production ASGI server (gunicorn, etc.)
-    uvicorn.run("main:app", host="127.0.0.1", port=5000, reload=True)
-
+    uvicorn.run("main:app", host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), reload=False)
 
 
 
