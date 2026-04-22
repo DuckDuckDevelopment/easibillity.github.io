@@ -184,7 +184,7 @@ const FormPage = () => {
             )}
           </button>
           <a
-            href="/dashboard.html"
+            href="./dashboard.html"
             target="_blank"
             rel="noreferrer"
             className="w-full md:w-auto inline-flex items-center justify-center gap-2 border border-[#2a2f2b] text-[#e8ede9] px-10 py-4 rounded-xl font-bold hover:bg-[#141714] hover:border-[#b8f06a] transition-all"
