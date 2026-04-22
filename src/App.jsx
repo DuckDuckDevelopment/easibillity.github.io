@@ -70,7 +70,7 @@ const FormPage = () => {
       }));
 
       // 2. Open a brand-new browser tab pointed at the results hash
-      window.open('/#results', '_blank');
+      window.open(window.location.pathname + '#results', '_blank');
 
     } catch (err) {
       setError(err.message);
