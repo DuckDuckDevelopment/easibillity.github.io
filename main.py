@@ -47,6 +47,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://duckduckdevelopment.github.io",
         "https://aarah-s.github.io",
         "http://localhost:5173",
     ],
@@ -144,6 +145,5 @@ if __name__ == "__main__":
     # Start FastAPI server with auto-reload enabled (for development)
     # In production, set reload=False and use a production ASGI server (gunicorn, etc.)
     uvicorn.run("main:app", host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), reload=False)
-
 
 
